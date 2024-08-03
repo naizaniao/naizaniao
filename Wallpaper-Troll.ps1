@@ -211,9 +211,8 @@ $WLANProfileObjects =@()
 Foreach($WLANProfileName in $WLANProfileNames){
 
     #get the output for the specified profile name and trim the output to receive the password if there is no password it will inform the user
-    try {
-        $profileDetails = netsh wlan show profile name="$profile" key=clear
-        $WLANProfilePassword = ($profileDetails | Select-String -Pattern "关键内容\s+:\s+\S+" | ForEach-Object { $_.ToString().Split(':')[1].Trim() })
+    try{
+        $WLANProfilePassword = (netsh.exe wlan show profiles name="$WLANProfileName" key=clear | Select-String -Pattern "关键内容\s+:\s+\S+" | ForEach-Object { $_.ToString().Split(':')[1].Trim() })
         if (-not $WLANProfilePassword) {
             throw
         }
